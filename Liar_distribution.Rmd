@@ -1,0 +1,55 @@
+---
+title: "portfolio_1"
+author: "Ben Hardin"
+date: "2023-01-26"
+output: html_document
+---
+
+###Intro
+
+[explain what is happening here]
+
+###Recreating my original plot
+
+```{r loading-packages-data}
+library(tidyverse)
+
+honesty <- read.csv("data/Honesty Goals data (Deidentified).csv")
+```
+
+
+```{r basic-histogram}
+ggplot(data = honesty,
+       aes(x = A_statehonesty))+
+  geom_histogram(binwidth = .33, color = "black", fill = "#6699FF")
+```
+
+Oh no. There is a huge negative value in our dataset (-99) causing problems for our histogram. This has reminded me that this dataset is not completely clean. Because of a qualtrics setting, questions that participants seem to have intentionally skipped where coded as -99. Also, there are currently observations that were determined to be invalid in the dataset. 
+
+To fix this I have to filter out these invalid observations. Luckily, this is not too difficult because there is a variable in the dataset (ValidID) that represents whether or not observations met our various criteria for validity when we cleaned this data. Because we are only interested in honesty with romantic partners, we can also filter for only those interactions participants had with their partners. Let's write some code to clean up this dataset.
+
+```{r filtering-for-clean-data}
+#Turning -99 into missing data
+honesty <- honesty %>% 
+  mutate_all(~replace(., . == -99, NA))
+
+#Creating a new filtered data set
+honesty_partners_clean <- honesty %>%
+  filter(inclusionsuggestion < 2, validID == 0, partner_interaction == 1)
+```
+
+#Clean histogram
+```{r histogram-time}
+ggplot(data = honesty_partners_clean,
+       aes(x = A_statehonesty))+
+  geom_histogram(binwidth = .33, color = "black", fill = "#6699FF")
+#BEN - some tasks would be to add labels to this and set the background white
+```
+
+```{r multiple-hists}
+ggplot(data = honesty_partners_clean %>%
+         filter(!is.na(A_benefitself)),
+       aes(x = A_statehonesty))+
+  geom_histogram(binwidth = .33, color = "black", fill = "#6699FF")+
+  facet_wrap(~ A_benefitself, ncol = 5)
+```
