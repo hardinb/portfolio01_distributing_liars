@@ -7,9 +7,9 @@ output: html_document
 
 ###Intro
 
-Background: The plots below present results from an experience sampling (ESM) study on honesty. 3 times a day for 1 week, 68 people answered questions about the everyday interactions that they had with their romantic partners (n = 792 observations). For each interaction, people reported (1) how much they thought lying would be beneficial, and (2) how honesty they were in the interaction.
+Background: The plots below present results from an experience sampling (ESM) study on honesty. 3 times a day for 1 week, 68 people answered questions about the everyday interactions that they had with their romantic partners (n = 792 observations). For each interaction, people reported, among other things, (1) how much they thought lying would be beneficial, and (2) how honesty they were in the interaction.
 
-The purpose of this portfolio piece is to explore several different ways of representing the relationship between the perceived benefit of lying and the honesty of people's communication with their romantic partner.
+The purpose of this portfolio piece is to explore several different ways of representing the relationship between the perceived benefit of lying and the honesty of people's communication with their romantic partner. In particular, we want to make a plot that nicely displays 2 key results from our study, those being (1) situations in which people perceive lying to their partner as beneficial are relatively rare, and (2) the distribution of honesty is highly skewed toward complete honesty when lying is seen as not beneficial, but the distribution becomes closer to normal as the potential benefit associated with lying increases.
 
 ###Recreating my original plot
 
@@ -43,7 +43,7 @@ honesty_partners_clean <- honesty %>%
   filter(inclusionsuggestion < 2, validID == 0, partner_interaction == 1)
 ```
 
-#Clean histogram
+###Clean histogram
 ```{r histogram-time}
 ggplot(data = honesty_partners_clean,
        aes(x = A_statehonesty))+
@@ -109,7 +109,7 @@ ggplot(data = honesty_partners_clean %>%
 # https://stackoverflow.com/questions/10861773/remove-grid-background-color-and-top-and-right-borders-from-ggplot2
 ```
 
-##Trying out new visualizations
+###Trying out new visualizations
 
 Okay, now that we have the faceted histograms, I think it makes since to see how these data might look with a few different kinds of visualizations. First, I tried a violin plot. It nicely shows how scores don't cluster as much around "4" when the benefit to lying increases. Unfortunately, these look a little bit awkward to me, probably because scores below "2" are so rare, causing the violins to be sort of cutoff at the bottom.
 
@@ -162,6 +162,7 @@ ggplot(data = honesty_partners_clean %>%
     plot.title = element_text(hjust = 0.5),
     plot.subtitle = element_text(hjust = 0.5))
 ```
+
 ###Trying a dichotomous definition of benefit
 
 Since one of the problems we are having with out plots is that people said they saw no benefit to lying (e.g., a score of "1") so much more often than they saw lying as any level of beneficial, I thought it might be worth trying a different definition of benefit that would allow the number of observations that we are comparing between each facet to be more similar.
@@ -250,14 +251,24 @@ ggplot(data = honesty_partners_clean %>%
     plot.title = element_text(hjust = 0.5),
     plot.subtitle = element_text(hjust = 0.5))
 ```
-These plots have some nice qualities. They show that total honesty is extremely common when there is no benefit to lying. Then, when lying is at least a little bit beneficial, honesty is still quite common but the difference in frequency between complete honesty and various levels of dishonesty is not nearly as overwhelming. Unfortunately, I do think that a lot of useful information is lost from dichotomosing benefit in this way, so I decided to scrap this idea and try something different.
+These plots have some nice qualities. They show that total honesty is extremely common when there is no benefit to lying. Then, when lying is at least a little bit beneficial, honesty is still quite common but the difference in frequency between complete honesty and various levels of dishonesty is not nearly as overwhelming. Unfortunately, I do think that a lot of useful information is lost by dichotomizing benefit in this way, so I decided to scrap this idea and try something different.
 
 ###Considering within-person variability in perceived benefit
+
+Another idea that I had was to remake the plots for all 5 levels of perceived benefit, but only including data from people who were in at least one situation where they saw some benefit to lying. The advantage of this approach is that if there are people who never said they saw any benefit to lying, these are inflating the number of cases that are included in the first panel, and the data from these individuals isn't really speaking to the point of this plot, which is to show that a person's likelihood of being less than perfectly honest changes depending on whether there is a benefit to lying.
+
+The code below creates a variable that represents the aggregated mean of each individual person's rating of the perceived benefit of lying across all the interactions they reported. Several people in the sample have a mean of "1", meaning that they never said there was a potential benefit to lying in any of the interactions with their partner that they reported.
+
 ```{r aggregate}
 honesty_partners_clean <- honesty_partners_clean %>%
   group_by(ID) %>%
   mutate(mean_benefit = mean(combined_benefit, na.rm = TRUE))
+
+honesty_partners_clean %>%
+  count(mean_benefit) %>%
+  arrange(mean_benefit)
 ```
+Now, I'd like to try recreating the earlier plots, filtering out individuals who never reported a benefit score > "1".
 
 ```{r new-hists}
 ggplot(data = honesty_partners_clean %>%
@@ -286,8 +297,9 @@ ggplot(data = honesty_partners_clean %>%
     plot.title = element_text(hjust = 0.5),
     plot.subtitle = element_text(hjust = 0.5))
 ```
+The histogram is very similar, and shows pretty much the same information as earlier. However, I think it may be an improvement since the x axis is not as tall, which makes the observations at the higher levels of benefit easier to see, allowing us to get a better sense of how the distribution is levelling out. The density plots also still do a nice job of showing this.
 
-```{r new-violins}
+```{r new-density}
 ggplot(data = honesty_partners_clean %>%
          filter(!is.na(combined_benefit), mean_benefit > 1),
        aes(x = A_statehonesty))+
@@ -314,6 +326,12 @@ ggplot(data = honesty_partners_clean %>%
     plot.title = element_text(hjust = 0.5),
     plot.subtitle = element_text(hjust = 0.5))
 ```
+
+###Making a final-er plot, with combined histograms and density distributions.
+
+Since I like both the histogram and the density plots, and I think they emphasize slightly different but equally important aspects of our data, I wanted my final step to be combining both of them into one plot.
+
+On my first attempt, the density distributions are basically not visible, because the density variable is on a much smaller scale than the count variable used for the histograms.
 
 ```{r frequency-density}
 ggplot(data = honesty_partners_clean %>%
@@ -345,6 +363,8 @@ ggplot(data = honesty_partners_clean %>%
     plot.subtitle = element_text(hjust = 0.5))
 ```
 
+To try and account for this, I did a second attempt with both the histogram and the density distributions charting density. The only problem with this is that we lose the valuable piece of information from the histogram, that there were only a few observations when people saw lying as highly beneficial.
+
 ```{r hist-density}
 ggplot(data = honesty_partners_clean %>%
          filter(!is.na(combined_benefit), mean_benefit > 1),
@@ -374,6 +394,8 @@ ggplot(data = honesty_partners_clean %>%
     plot.title = element_text(hjust = 0.5),
     plot.subtitle = element_text(hjust = 0.5))
 ```
+
+In my third attempt, I tried plotting the count for both the histograms and densities. This is extremely close to what I want, but I wonder if there is a way to have both the density information and the count information in the same plot.
 
 ```{r count-density, fig.height = 5}
 ggplot(data = honesty_partners_clean %>%
@@ -406,4 +428,37 @@ ggplot(data = honesty_partners_clean %>%
     plot.subtitle = element_text(hjust = 0.5))
 ```
 
-I'm still not completely satisfied with this version of the plot, but I think it has improved some over the course of all these iterations. 
+Now this is pretty close to what I had in mind! By scaling the histogram count down, the density plots and histograms are on a more similar scale and so we can see both the density information and the frequency information. This plot is getting much closer to showing both how the shape of the distribution changes as the benefit of lying increases, as well as the fact that situations when lying was seen as highly beneficial were rare.
+
+```{r scaled-count-density, fig.height = 5}
+ggplot(data = honesty_partners_clean %>%
+         filter(!is.na(combined_benefit), mean_benefit > 1),
+       aes(x = A_statehonesty))+
+  geom_histogram(aes(y = (..count../100),),
+    binwidth = .33, 
+    color = "black", 
+    fill = "#6699FF")+
+  geom_density(
+               linewidth = 0.55,
+               adjust = 3)+
+  facet_wrap(~ combined_benefit, ncol = 5)+
+  scale_y_continuous(
+    expand = c(0, 0),
+    limits = c(0, 3))+
+  theme(
+    plot.background = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank())+
+  theme(axis.line = element_line(color = "black"))+
+  labs(
+    title = "State Honesty Conditioned on Perceived Benefits of Lying",
+    subtitle = "Benefit of Lying",
+    x = "State Honesty", 
+    y = "Frequency")+
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5))
+```
+
+I'm still not completely satisfied with this version of the plot, but I think it has improved some over the course of all these iterations. I might try and do some more research into different ways of visualizing these kinds of distributions, and revisit it sometime later.
